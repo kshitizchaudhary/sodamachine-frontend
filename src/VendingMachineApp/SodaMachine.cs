@@ -20,9 +20,9 @@ namespace VendingMachineApp
         /// <summary>
         /// This is the starter method for the machine
         /// </summary>
-        public void Start()
+        public async Task StartAsync()
         {
-            _products = _orderService.GetProductsAsync().GetAwaiter().GetResult();
+            _products = await _orderService.GetProductsAsync();
             var commaSeparatedProductNames = string.Join(", ", _products.Select(p => p.Name.ToLower()));
 
             while (true)
@@ -52,13 +52,13 @@ namespace VendingMachineApp
                     if (OrderExists(_order))
                     {
                         // insert the money to existing order
-                        var updatedOrder = _orderService.AddCreditToOrderAsync(new AddCreditToOrderRequest { OrderId = _order.Id, CreditAmount = money, PaymentType = "Cash" }).GetAwaiter().GetResult();
+                        var updatedOrder = await _orderService.AddCreditToOrderAsync(new AddCreditToOrderRequest { OrderId = _order.Id, CreditAmount = money, PaymentType = "Cash" });
                         _order.CreditAmount = updatedOrder.CreditAmount;
                     }
                     else
                     {
                         // Add new order
-                        AddOrder("Cash", money);
+                        await AddOrderAsync("Cash", money);
                     }
 
                     Console.WriteLine($"Adding {_order.CreditAmount} to credit");
@@ -68,31 +68,31 @@ namespace VendingMachineApp
                 {
                     // split string on space
                     var csoda = input.Split(' ')[1];
-                    ProcessOrder(csoda);
+                    await ProcessOrderAsync(csoda);
                 }
 
                 if (input.StartsWith("sms order"))
                 {
                     // split string on space
                     var csoda = input.Split(' ')[2];
-                    ProcessOrder(csoda, true);
+                    await ProcessOrderAsync(csoda, true);
                 }
 
                 if (input.Equals("recall"))
                 {
                     //Give money back
-                    Recall(_order);
+                    await RecallAsync(_order);
                 }
             }
         }
 
-        private void Recall(OrderItem order)
+        private async Task RecallAsync(OrderItem order)
         {
             //Give money back
             if (order.CreditAmount > 0)
             {
                 Console.WriteLine($"Returning {order.CreditAmount} to customer");
-                _orderService.RecallOrderAsync(order.Id).GetAwaiter().GetResult();
+                await _orderService.RecallOrderAsync(order.Id);
             }
 
             //Reset the order
@@ -101,12 +101,12 @@ namespace VendingMachineApp
 
         private static bool OrderExists(OrderItem order) => order.Id > 0;
 
-        private void AddOrder(string paymentType, decimal creditAmount)
+        private async Task AddOrderAsync(string paymentType, decimal creditAmount)
         {
-            _order = _orderService.AddOrderAsync(new AddOrderRequest { PaymentType = paymentType, CreditAmount = creditAmount }).GetAwaiter().GetResult();
+            _order = await _orderService.AddOrderAsync(new AddOrderRequest { PaymentType = paymentType, CreditAmount = creditAmount });
         }
         
-        private void ProcessOrder(string productName, bool isSMSOrder = false)
+        private async Task ProcessOrderAsync(string productName, bool isSMSOrder = false)
         {
             // Find product
             var product = _products.FirstOrDefault(p => p.Name.ToLower().Trim() == productName.ToLower().Trim());
@@ -128,7 +128,7 @@ namespace VendingMachineApp
                 else
                 {
                     // Create SMS order
-                    AddOrder("SMS", product.PricePerUnit);
+                    await AddOrderAsync("SMS", product.PricePerUnit);
                 }
             }
             else if (!OrderExists(_order))
@@ -139,7 +139,7 @@ namespace VendingMachineApp
             }
 
             // Add Product
-            var addProductResponse = _orderService.AddProductAsync(_order.Id, product.Id).GetAwaiter().GetResult();
+            var addProductResponse = await _orderService.AddProductAsync(_order.Id, product.Id);
 
             if (addProductResponse == null || addProductResponse.Order == null)
             {
@@ -155,7 +155,7 @@ namespace VendingMachineApp
             {
                 case OrderStatus.ProductShipped:
                     Console.WriteLine($"Giving {productName} out");
-                    Recall(_order); // Recall available credit amount
+                    await RecallAsync(_order); // Recall available credit amount
                     
                     break;
 
@@ -175,7 +175,7 @@ namespace VendingMachineApp
                     if (isSMSOrder)
                     {
                         // immediately return the money
-                        Recall(_order);
+                        await RecallAsync(_order);
                     }
                         
 

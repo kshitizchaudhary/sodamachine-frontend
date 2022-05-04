@@ -8,8 +8,12 @@ using VendingMachineApp.OrderManagementAPIClient;
 
 var host = CreateHostBuilder(args)
     .Build();
-host.Services.GetService<SodaMachine>()?.Start();
 
+var sodaMachineService = host?.Services?.GetService<SodaMachine>();
+if (sodaMachineService != null)
+{
+    await sodaMachineService.StartAsync();
+}
 
 static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
