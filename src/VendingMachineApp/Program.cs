@@ -6,8 +6,10 @@ using Microsoft.Extensions.Logging;
 using VendingMachineApp;
 using VendingMachineApp.OrderManagementAPIClient;
 
-var host = CreateHostBuilder(args).Build();
+var host = CreateHostBuilder(args)
+    .Build();
 host.Services.GetService<SodaMachine>()?.Start();
+
 
 static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
@@ -17,8 +19,13 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
         })
         .ConfigureServices((context, services) =>
         {
+            var orderAPIBaseUrl = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .Build()
+            .GetValue<string>("OrderAPIBaseUrl");
+
             //add your service registrations
             services.AddSingleton(typeof(SodaMachine));
-            services.AddTransient<IOrderAPIClient>(o => new OrderAPIClient("https://localhost:7167")); // TODO: get base url from app settings
+            services.AddTransient<IOrderAPIClient>(o => new OrderAPIClient(orderAPIBaseUrl));
             services.AddLogging(configure => configure.AddConsole());
         });
