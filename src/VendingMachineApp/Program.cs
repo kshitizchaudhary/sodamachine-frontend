@@ -12,7 +12,16 @@ var host = CreateHostBuilder(args)
 var sodaMachineService = host?.Services?.GetService<SodaMachine>();
 if (sodaMachineService != null)
 {
-    await sodaMachineService.StartAsync();
+    try
+    {
+        await sodaMachineService.StartAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(ex);
+    }
+    Console.WriteLine("Press enter to exit!");
+    Console.ReadLine();
 }
 
 static IHostBuilder CreateHostBuilder(string[] args) =>
